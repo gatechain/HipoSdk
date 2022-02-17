@@ -13,7 +13,7 @@
 		<button id="deposit">充值</button>
 		<button id="withdraw">提现</button>
 	</div>
-	<script type="text/javascript" src="bundle.js"></script>
+	<script type="text/javascript" src="hipo-sdk.js"></script>
 	<script>
     	const hipoSdk = new HipoSdk()
 		// 币的地址 (USDT)
@@ -21,11 +21,16 @@
 		// 0 需要授权 （授权额度 < 充值额度）
 		// 1 不需要授权（授权额度 >= 充值额度）
 		var approveStatus = 0
+		// 切换链
 		hipoSdk.on('chainChanged', function (a) {
-			console.log(a)
+			console.log(a, '切换链')
 		})
+		// 切换账户
 		hipoSdk.on('accountsChanged', function (account) {
-			console.log(account)
+			console.log(account, '切换账户')
+		})
+		hipoSdk.on('disconnect', function () {
+			console.log('断开钱包')
 		})
 
 		hipoSdk.connect().then(() => {

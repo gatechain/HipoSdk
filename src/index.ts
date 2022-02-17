@@ -81,7 +81,9 @@ export default class HipoClass extends EventEmitter {
       this.setAccount(accounts)
       this.emit('accountsChanged', this.currAccount)
     })
-    // this.ethereum.on('disconnect', handleClose)
+    this.ethereum.on('disconnect', () => {
+      this.emit('disconnect')
+    })
   }
 
   sign (value: string) {
@@ -115,7 +117,6 @@ export default class HipoClass extends EventEmitter {
   // 授权
   public async approve(token: string, spender: string, value: string): Promise<any> {
     const { decimals, contract } = await getERC20(token, this.provider);
-    console.log(decimals)
     if (this.signer) {
       const signerContract = contract.connect(this.signer);
       const tx = await signerContract.approve(spender, fixedToInt(value, decimals));
@@ -123,11 +124,9 @@ export default class HipoClass extends EventEmitter {
     }
     return '';
   }
-  // 授权状态 、事件监听、
   
   /**
    * 查看授权状态
-   * 1 
    */
   async getApproveStatus (token: string, spender: string, value: string) {
     try {
