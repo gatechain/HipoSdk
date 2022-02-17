@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<meta http-equiv="X-UA-Compatible" content="IE=edge">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>Document</title>
+</head>
+<body>
+	<div>
+		<div>可提现余额：<span id="balance"></span></div>
+		<button id="approve">授权</button>
+		<button id="deposit">充值</button>
+		<button id="withdraw">提现</button>
+	</div>
+	<script type="text/javascript" src="bundle.js"></script>
+	<script>
+    	const hipoSdk = new HipoSdk()
+		// 币的地址 (USDT)
+		var token = '0x475EbfBF2367d5C42f55bd997f9E65D8b35Ded65'
+		// 0 需要授权 （授权额度 < 充值额度）
+		// 1 不需要授权（授权额度 >= 充值额度）
+		var approveStatus = 0
+		hipoSdk.on('chainChanged', function (a) {
+			console.log(a)
+		})
+		hipoSdk.on('accountsChanged', function (account) {
+			console.log(account)
+		})
+
+		hipoSdk.connect().then(() => {
+			// 获取可提现余额
+			hipoSdk.perpetual.getWithdrawalBalance(token).then(data => {
+				console.log(data.toString())
+				document.querySelector('#balance').innerHTML = data.toString()
+			}).catch(error => {
+				console.log(error)
+				document.querySelector('#balance').innerHTML = 0
+			})
+
+			// 获取授权状态
+			hipoSdk.getApproveStatus(token, hipoSdk.perpetual.contractAddress[hipoSdk.chainId], '100').then(data => {
+				console.log(data)
+			}).catch(console.log)
+		}).catch(() => {
+			console.log('123')
+		})
+
+		document.querySelector('#approve').addEventListener('click', function () {
+			// 85链 合约地址 
+			const contractAddress = hipoSdk.perpetual.contractAddress[hipoSdk.chainId]
+			hipoSdk.approve(token, contractAddress, '100')
+		})
+
+		// 提现
+		document.querySelector('#withdraw').addEventListener('click', function () {
+			hipoSdk.perpetual.withdraw(token)
+		})
+
+		// 充值
+		document.querySelector('#deposit').addEventListener('click', function () {
+			console.log(hipoSdk.perpetual)
+			hipoSdk.perpetual.deposit(token, '1000')
+		})
+
+	</script>
+</body>
+</html>

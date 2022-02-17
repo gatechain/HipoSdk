@@ -1,0 +1,21 @@
+{
+	"compilerOptions": {
+	  "outDir": "./dist/",
+	  "noImplicitAny": true,
+	  "sourceMap": true,
+	  "module": "ESNext",
+	  "target": "es5",
+	  "allowJs": true,
+	  "moduleResolution": "node",
+	  "resolveJsonModule": true,
+	  "paths": {
+		  "*": ["./types/*"]
+	  }
+	},
+	"typeRoots": [
+		"node_modules/@types"
+	],
+	"include": [
+		"src"
+  	]
+}
