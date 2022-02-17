@@ -29,64 +29,96 @@ export default class HipoClass extends EventEmitter {
   public provider?: providers.Provider
   public signer?: Signer
   public perpetual: Perpetual
-  public event: Event
 
   constructor () {
      super()
      this.ethereum = getEtherum()
      this.perpetual = new Perpetual(this)
+     this.init()
   }
 
-  async init () {
-    const chainId = await this.ethereum.request({
-      method: 'eth_chainId',
+  private init () {
+    this.ethereum.request({ method: 'eth_accounts'})
+    .then((accounts:string[]) => {
+      this.setAccount(accounts)
+      if (accounts.length) {
+        this.emit('connect', true)
+      } else {
+        this.emit('connect', false)
+      }
     })
-    this.setChainId(chainId)
+    this.ethereum.request({method: 'eth_chainId'}).then(((chainId: string) => this.setChainId(chainId)))
+  }
 
-    this.accounts = await this.ethereum.request({
-      method: 'eth_requestAccounts',
-    })
-    this.setAccount(this.accounts)
+  private setChainId (chainId: string) {
+    this.chainId =  Number(Number(chainId).toString(10))
+  }
 
+  private setAccount (accounts: string[]) {
+    this.accounts = accounts
+    if (accounts.length) {
+      this.currAccount =  accounts[0]
+      this.setProvider()
+    }
+  }
+
+  private setProvider () {
     const provider = new providers.Web3Provider(this.ethereum)
     this.provider = provider
     this.signer = provider.getSigner()
   }
 
-  setChainId (chainId: string) {
-    this.chainId =  Number(Number(chainId).toString(10))
-  }
-
-  setAccount (accounts: string[]) {
-    this.accounts = accounts
-    this.currAccount =  accounts[0]
-  }
-
-
   async connect () {
     try {
-      await this.init()
+
+      this.accounts = await this.ethereum.request({
+        method: 'eth_requestAccounts',
+      })
+      this.setAccount(this.accounts)
       this.watchEvent()
     } catch (error) {
       throw error
     }
   }
 
-  watchEvent() {
-    this.ethereum.on('chainChanged', (chainId: string) => {
-        this.setChainId(chainId)
-        this.emit('chainChanged', this.chainId)
-    })
-    this.ethereum.on('accountsChanged', (accounts: string[]) => {
-      this.setAccount(accounts)
+  private connectEventCallback () {
+    this.emit('connect')
+  }
+  private disconnectEventCallback () {
+    this.emit('disconnect')
+  }
+  private chainChangedEventCallback (chainId: string) {
+    this.setChainId(chainId)
+    this.emit('chainChanged', this.chainId)
+  }
+  private accountsEventCallback (accounts: string[]) {
+    if (accounts.length) {
       this.emit('accountsChanged', this.currAccount)
-    })
-    this.ethereum.on('disconnect', () => {
-      this.emit('disconnect')
+    }  else {
+      this.emit('connect', false)
+    }
+    this.setAccount(accounts)
+  }
+
+  private watchEvent() {
+    this.ethereum.on('connect', this.connectEventCallback.bind(this))
+
+    this.ethereum.on('disconnect', this.disconnectEventCallback.bind(this))
+
+    this.ethereum.on('chainChanged', this.chainChangedEventCallback.bind(this))
+
+    this.ethereum.on('accountsChanged', this.accountsEventCallback.bind(this))
+  }
+  
+  public removeEvent () {
+    const events = ['connect', 'disconnect', 'chainChanged', 'accountsChanged']
+    events.forEach(eventString => {
+      this.ethereum.removeEvent(eventString)
+      this.removeListener(eventString, (this as any)[`${eventString}EventCallback`])
     })
   }
 
-  sign (value: string) {
+  public sign (value: string) {
     return this.ethereum.request({
       method: 'personal_sign',
       params: [
@@ -128,7 +160,7 @@ export default class HipoClass extends EventEmitter {
   /**
    * 查看授权状态
    */
-  async getApproveStatus (token: string, spender: string, value: string) {
+  public async getApproveStatus (token: string, spender: string, value: string) {
     try {
       const allowance = await this.getTokenAllowance(token, spender)
       const { decimals } = await getERC20(token, this.provider);
