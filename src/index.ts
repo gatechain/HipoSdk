@@ -6,13 +6,26 @@ import hexer from '../utils/hexer'
 import {fixedToInt } from '../utils'
 import * as EventEmitter from 'events'
 
-export function getERC20Contract(address: string, signerOrProvider?: Signer | providers.Provider) {
-  return new Contract(address, ERC20ABI, signerOrProvider);
+export function getERC20Contract(token: string, signerOrProvider?: Signer | providers.Provider) {
+  return new Contract(token, ERC20ABI, signerOrProvider);
 }
 
 enum ApproveStatus {
   Approve,
   dontApprove,
+}
+
+export enum Contracts {
+  perpetualContract = 'perpetualContract'
+}
+
+export interface Config {
+  [key: number]: {
+    perpetualContract: {
+      address: string
+    },
+    [key: string]: any,
+  }
 }
 
 async function getERC20(token: string, provider: providers.Provider) {
@@ -22,6 +35,7 @@ async function getERC20(token: string, provider: providers.Provider) {
 }
 
 export default class HipoClass extends EventEmitter {
+  public config = {}
   private ethereum: any
   public chainId: number = 86
   public currAccount = ''
@@ -30,24 +44,33 @@ export default class HipoClass extends EventEmitter {
   public signer?: Signer
   public perpetual: Perpetual
 
-  constructor () {
+  constructor (config: any) {
      super()
+     this.config = config
      this.ethereum = getEtherum()
-     this.perpetual = new Perpetual(this)
      this.init()
   }
 
-  private init () {
-    this.ethereum.request({ method: 'eth_accounts'})
-    .then((accounts:string[]) => {
+  private async init () {
+    try {
+      const [chainId, accounts] = await Promise.all([
+        this.ethereum.request({ method: 'eth_chainId' }),
+        this.ethereum.request({ method: 'eth_accounts' })
+      ])
+
+      this.setChainId(chainId)
       this.setAccount(accounts)
       if (accounts.length) {
+        this.perpetual = new Perpetual(this)
+        
         this.emit('connect', true)
+        this.watchEvent()
       } else {
         this.emit('connect', false)
       }
-    })
-    this.ethereum.request({method: 'eth_chainId'}).then(((chainId: string) => this.setChainId(chainId)))
+    } catch (error) {
+      throw error      
+    }
   }
 
   private setChainId (chainId: string) {
@@ -81,12 +104,6 @@ export default class HipoClass extends EventEmitter {
     }
   }
 
-  private connectEventCallback () {
-    this.emit('connect')
-  }
-  private disconnectEventCallback () {
-    this.emit('disconnect')
-  }
   private chainChangedEventCallback (chainId: string) {
     this.setChainId(chainId)
     this.emit('chainChanged', this.chainId)
@@ -101,12 +118,7 @@ export default class HipoClass extends EventEmitter {
   }
 
   private watchEvent() {
-    this.ethereum.on('connect', this.connectEventCallback.bind(this))
-
-    this.ethereum.on('disconnect', this.disconnectEventCallback.bind(this))
-
     this.ethereum.on('chainChanged', this.chainChangedEventCallback.bind(this))
-
     this.ethereum.on('accountsChanged', this.accountsEventCallback.bind(this))
   }
   
@@ -128,17 +140,6 @@ export default class HipoClass extends EventEmitter {
     })
   }
 
-  // // 查授权额度 
-  // public async getTokenAllowance(token: string, account: string, spender: string): Promise<string> {
-  //   const contract = getERC20Contract(token, this.provider);
-  //   const [decimals, allowance] = await Promise.all([
-  //     contract.decimals(),
-  //     contract.allowance(account, spender)
-  //   ])
-
-  //   console.log(decimals, 'decimals')
-  //   return intToFixed(allowance.toString(), decimals)
-  // }
   // 查授权额度 
   public async getTokenAllowance(token: string, spender: string): Promise<BigNumber> {
     const contract = getERC20Contract(token, this.provider);

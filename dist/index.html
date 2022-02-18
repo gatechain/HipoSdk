@@ -1,4 +1,4 @@
-<!ndow.addEventListener('unload', function(event) { hipoSdk.revmee.'); });DOCTYPE html>
+<!DOCTYPE html>
 	<html lang="en">
 
 	<head>
@@ -13,6 +13,7 @@
 			<div>可提现余额：<span id="balance"></span></div>
 			<button id="approve">授权</button>
 			<button id="deposit">充值</button>
+			<button id="sign">签名</button>
 			<button id="withdraw">提现</button>
 
 		</div>
@@ -20,9 +21,20 @@
 		<script>
 
 			async function main() {
-				const hipoSdk = new HipoSdk()
-				// 币的地址 (USDT)
-				var token = '0x475EbfBF2367d5C42f55bd997f9E65D8b35Ded65'
+				var config = {
+					// chainID
+					85: {
+						perpetualContract: {
+							// 合约地址
+							address: '0x4F091e8f52092E7Ce70Fc385ae3B2d1301476293'
+						},
+						// 币的地址 (USDT)
+						usdt: '0x475EbfBF2367d5C42f55bd997f9E65D8b35Ded65',
+					}
+				}
+
+				const hipoSdk = new HipoSdk(config)
+							
 				// 0 需要授权 （授权额度 < 充值额度）
 				// 1 不需要授权（授权额度 >= 充值额度）
 				var approveStatus = 0
@@ -80,37 +92,48 @@
 						.then(() => {
 							// 获取可提现余额
 							getBanlance()
-
 							// 获取授权状态
-							hipoSdk.getApproveStatus(token, hipoSdk.perpetual.contractAddress[hipoSdk.chainId], '100').then(data => {
+							hipoSdk.getApproveStatus(
+								hipoSdk.config[hipoSdk.chainId].usdt, 
+								hipoSdk.config[hipoSdk.chainId].perpetualContract.address, 
+								'100'
+							).then(data => {
 								console.log(data)
 							}).catch(console.log)
-							console.log('123')
 							boxDom.removeChild(connectDom)
 						}).catch(() => {
-							console.log('123')
 						})
 				}
 
+				document.querySelector('#sign').addEventListener('click', function () {
+					const timestamp = new Date().getTime()
+    				const signData = { action: 'HIPO-ONBOARDING', timestamp: timestamp.toString() }
+
+					hipoSdk.sign(JSON.stringify(signData)).then(value => {
+						console.log(value)
+					})
+				})
+
 				document.querySelector('#approve').addEventListener('click', function () {
 					// 85链 合约地址 
-					const contractAddress = hipoSdk.perpetual.contractAddress[hipoSdk.chainId]
-					hipoSdk.approve(token, contractAddress, '100')
+					const contractAddress = hipoSdk.config[hipoSdk.chainId].perpetualContract.address
+					hipoSdk.approve(hipoSdk.config[hipoSdk.chainId].usdt, contractAddress, '100')
 				})
 
 				// 提现
 				document.querySelector('#withdraw').addEventListener('click', function () {
-					hipoSdk.perpetual.withdraw(token)
+					hipoSdk.perpetual.withdraw(hipoSdk.config[hipoSdk.chainId]?.usdt)
 				})
 
 				// 充值
 				document.querySelector('#deposit').addEventListener('click', function () {
 					console.log(hipoSdk.perpetual)
-					hipoSdk.perpetual.deposit(token, '1000')
+					hipoSdk.perpetual.deposit(hipoSdk.config[hipoSdk.chainId]?.usdt, '100')
 				})
 
 				function getBanlance () {
-					hipoSdk.perpetual.getWithdrawalBalance(token).then(data => {
+					console.log(hipoSdk.chainId)
+					hipoSdk.perpetual.getWithdrawalBalance(hipoSdk.config[hipoSdk.chainId]?.usdt).then(data => {
 						console.log(data.toString())
 						balanceDom.innerHTML = data.toString()
 					}).catch(error => {

@@ -1,7 +1,12 @@
+import { ethers } from "ethers";
+
 export default function hexer (input: string) {
-	const utf8 = toUTF8Array(input);
-	const hex = utf8.map(n => n.toString(16));
-	return '0x' + hex.join('');
+	const byte = ethers.utils.toUtf8Bytes(input);
+	const hex = ethers.utils.hexZeroPad(byte, byte.length);
+	return hex
+	// const utf8 = toUTF8Array(input);
+	// const hex = utf8.map(n => n.toString(16));
+	// return '0x' + hex.join('');
   }
   
   // From https://stackoverflow.com/a/18729931
