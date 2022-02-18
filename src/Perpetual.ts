@@ -33,7 +33,7 @@ export default class Perpetual extends ContractAbstract {
 			const erc20 = getERC20Contract(token, this.provider)
 			const decimals = await erc20.decimals()
 			const amountBig = fixedToInt(amount, decimals)
-			await contract.deposit(this.currAccount, token, amountBig)
+			return await contract.deposit(this.currAccount, token, amountBig)
 		} catch (error) {
 			throw error
 		}
@@ -43,7 +43,7 @@ export default class Perpetual extends ContractAbstract {
 	async withdraw(token: string) {
 		try {
 			const contract = this.getPerpetualContract()
-			await contract.withdraw(this.currAccount, token)
+			return await contract.withdraw(this.currAccount, token)
 		} catch (error) {
 			throw error
 		}

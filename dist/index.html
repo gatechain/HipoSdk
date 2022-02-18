@@ -117,18 +117,30 @@
 				document.querySelector('#approve').addEventListener('click', function () {
 					// 85链 合约地址 
 					const contractAddress = hipoSdk.config[hipoSdk.chainId].perpetualContract.address
-					hipoSdk.approve(hipoSdk.config[hipoSdk.chainId].usdt, contractAddress, '100')
+					hipoSdk.approve(hipoSdk.config[hipoSdk.chainId].usdt, contractAddress, '100').then(async data => {
+						console.log('授权中...')
+						await data.wait()
+						console.log('授权成功')
+					})
 				})
 
 				// 提现
 				document.querySelector('#withdraw').addEventListener('click', function () {
-					hipoSdk.perpetual.withdraw(hipoSdk.config[hipoSdk.chainId]?.usdt)
+					hipoSdk.perpetual.withdraw(hipoSdk.config[hipoSdk.chainId]?.usdt).then(async (data) => {
+						console.log('提现中...')
+						await data.wait()
+						console.log('提现成功')
+					})
 				})
 
 				// 充值
 				document.querySelector('#deposit').addEventListener('click', function () {
 					console.log(hipoSdk.perpetual)
-					hipoSdk.perpetual.deposit(hipoSdk.config[hipoSdk.chainId]?.usdt, '100')
+					hipoSdk.perpetual.deposit(hipoSdk.config[hipoSdk.chainId]?.usdt, '100').then(async (data) => {
+						console.log('充值中...')
+						await data.wait()
+						console.log('充值成功')
+					})
 				})
 
 				function getBanlance () {
